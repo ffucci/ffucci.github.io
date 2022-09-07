@@ -7,7 +7,12 @@
         <loc>https://ffucci.github.io/blog/</loc>
     </url>
     <url>
-        <loc>https://ffucci.github.io/blog/first/</loc>
-        <lastmod>2019-11-27</lastmod>
+        <loc>https://ffucci.github.io/categories/</loc>
+    </url>
+    <url>
+        <loc>https://ffucci.github.io/projects/</loc>
+    </url>
+    <url>
+        <loc>https://ffucci.github.io/tags/</loc>
     </url>
 </urlset>

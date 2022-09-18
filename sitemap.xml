@@ -11,10 +11,17 @@
         <lastmod>2022-09-09</lastmod>
     </url>
     <url>
+        <loc>https://ffucci.github.io/blog/shared-ptr/</loc>
+        <lastmod>2022-09-18</lastmod>
+    </url>
+    <url>
         <loc>https://ffucci.github.io/categories/</loc>
     </url>
     <url>
         <loc>https://ffucci.github.io/categories/coding-problems/</loc>
+    </url>
+    <url>
+        <loc>https://ffucci.github.io/categories/fundamentals/</loc>
     </url>
     <url>
         <loc>https://ffucci.github.io/projects/</loc>
@@ -27,5 +34,8 @@
     </url>
     <url>
         <loc>https://ffucci.github.io/tags/leetcode/</loc>
+    </url>
+    <url>
+        <loc>https://ffucci.github.io/tags/rust/</loc>
     </url>
 </urlset>

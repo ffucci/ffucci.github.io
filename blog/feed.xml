@@ -4,8 +4,272 @@
 	<subtitle>My blog site.</subtitle>
 	<link href="https://ffucci.github.io/blog/feed.xml" rel="self" type="application/atom+xml"/>
     <link href="https://ffucci.github.io/blog/"/>
-	<updated>2022-09-09T00:00:00+00:00</updated>
+	<updated>2022-09-18T00:00:00+00:00</updated>
 	<id>https://ffucci.github.io/blog/feed.xml</id>
+	<entry xml:lang="en">
+		<title>Back to Basics: Shared Pointers</title>
+		<published>2022-09-18T00:00:00+00:00</published>
+		<updated>2022-09-18T00:00:00+00:00</updated>
+		<link href="https://ffucci.github.io/blog/shared-ptr/" type="text/html"/>
+		<id>https://ffucci.github.io/blog/shared-ptr/</id>
+		<content type="html">&lt;h2 id=&quot;introduction&quot;&gt;Introduction&lt;&#x2F;h2&gt;
+&lt;p&gt;In C++ like in other languages like Rust is very important the concept of data ownership.
+In this post, I will show how to create a class that implements &lt;strong&gt;shared pointer&lt;&#x2F;strong&gt; in C++.
+Once in a C++ interview I was asked the internal implementation of shared_ptr, apparently that is the line that separates junior C++ engineers and senior C++ engineers. &lt;&#x2F;p&gt;
+&lt;p&gt;So today you will learn how to become a senior C++ engineer :). My recommendation is to avoid your implementation of shared pointer and use the standard implementation that you can find in the standard library in the &lt;span style=&quot;font-family:Courier New; font-size:1em;&quot;&gt;memory&lt;&#x2F;span&gt; header with name &lt;span style=&quot;font-family:Courier New; font-size:1em;&quot;&gt;std::shared_ptr&lt;&#x2F;span&gt;.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;smart-pointers&quot;&gt;Smart pointers&lt;&#x2F;h2&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Smart pointers are constructs that allow to have a unambiguous definition of ownership.
+The shared_ptr type is a smart pointer in the C++ standard library that is designed for scenarios in which more than one owner might have to manage the lifetime of the object in memory.&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;p&gt;The mechanism that is used to implement shared pointers is &lt;strong&gt;reference counting&lt;&#x2F;strong&gt;, which consists in having a counter to keep track on how many objects are pointing to the data contained in the shared pointer.&lt;&#x2F;p&gt;
+&lt;p&gt;In this case the lifetime of the object is shared between all the objects that copy the shared pointer. &lt;&#x2F;p&gt;
+&lt;p&gt;Here we can see an example, imagine that you have the following struct:&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;cpp&quot; style=&quot;background-color:#2e3440;color:#d8dee9;&quot; class=&quot;language-cpp &quot;&gt;&lt;code class=&quot;language-cpp&quot; data-lang=&quot;cpp&quot;&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;struct &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fbcbb;&quot;&gt;A
+&lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;int&lt;&#x2F;span&gt;&lt;span&gt; element1&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;int&lt;&#x2F;span&gt;&lt;span&gt; element2&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;}&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;I assume that on my machine int is represented on 4 bytes. The size of this struct is then 8 bytes.
+Let&#x27;s start by using what is available in the standard library: &lt;span style=&quot;font-family:Courier New; font-size:1em;&quot;&gt;std::shared_ptr&lt;&#x2F;span&gt;.&lt;&#x2F;p&gt;
+&lt;p&gt;The following snippet of code will use a &lt;span style=&quot;font-family:Courier New; font-size:1em;&quot;&gt;std::shared_ptr&lt;&#x2F;span&gt; on struct A.&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;cpp&quot; style=&quot;background-color:#2e3440;color:#d8dee9;&quot; class=&quot;language-cpp &quot;&gt;&lt;code class=&quot;language-cpp&quot; data-lang=&quot;cpp&quot;&gt;&lt;span style=&quot;color:#5e81ac;&quot;&gt;#include &lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;&amp;lt;iostream&amp;gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#5e81ac;&quot;&gt;#include &lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;&amp;lt;memory&amp;gt;
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;struct &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fbcbb;&quot;&gt;A
+&lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#88c0d0;&quot;&gt;A&lt;&#x2F;span&gt;&lt;span&gt;() &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;= default&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;int&lt;&#x2F;span&gt;&lt;span&gt; element1 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;10&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;int&lt;&#x2F;span&gt;&lt;span&gt; element2 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;10&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;}&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;int &lt;&#x2F;span&gt;&lt;span style=&quot;color:#88c0d0;&quot;&gt;main&lt;&#x2F;span&gt;&lt;span&gt;()
+&lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;auto&lt;&#x2F;span&gt;&lt;span&gt; p &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span&gt;std&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span style=&quot;color:#88c0d0;&quot;&gt;make_shared&lt;&#x2F;span&gt;&lt;span&gt;&amp;lt;A&amp;gt;()&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#616e88;&quot;&gt;&#x2F;&#x2F; Position 1
+&lt;&#x2F;span&gt;&lt;span&gt;    std&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span&gt;cout &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;lt;&amp;lt;&lt;&#x2F;span&gt;&lt;span&gt; p&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;-&amp;gt;&lt;&#x2F;span&gt;&lt;span&gt;element1 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;lt;&amp;lt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;&amp;quot;,&amp;quot; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;lt;&amp;lt;&lt;&#x2F;span&gt;&lt;span&gt; p&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;-&amp;gt;&lt;&#x2F;span&gt;&lt;span&gt;element2 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;lt;&amp;lt;&lt;&#x2F;span&gt;&lt;span&gt; std&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span&gt;endl&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;    std&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span&gt;cout &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;lt;&amp;lt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;&amp;quot;Count: &amp;quot; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;lt;&amp;lt;&lt;&#x2F;span&gt;&lt;span&gt; p&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#88c0d0;&quot;&gt;use_count&lt;&#x2F;span&gt;&lt;span&gt;() &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;lt;&amp;lt;&lt;&#x2F;span&gt;&lt;span&gt; std&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span&gt;endl&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;; 
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;auto&lt;&#x2F;span&gt;&lt;span&gt; p2 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; p&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;                    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#616e88;&quot;&gt;&#x2F;&#x2F; Position 2
+&lt;&#x2F;span&gt;&lt;span&gt;    std&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span&gt;cout &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;lt;&amp;lt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;&amp;quot;Count: &amp;quot; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;lt;&amp;lt;&lt;&#x2F;span&gt;&lt;span&gt; p&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#88c0d0;&quot;&gt;use_count&lt;&#x2F;span&gt;&lt;span&gt;() &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;lt;&amp;lt;&lt;&#x2F;span&gt;&lt;span&gt; std&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span&gt;endl&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;; 
+&lt;&#x2F;span&gt;&lt;span&gt;    {
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;auto&lt;&#x2F;span&gt;&lt;span&gt; p3 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; p&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#616e88;&quot;&gt;&#x2F;&#x2F; Position 3
+&lt;&#x2F;span&gt;&lt;span&gt;        std&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span&gt;cout &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;lt;&amp;lt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;&amp;quot;Count: &amp;quot; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;lt;&amp;lt;&lt;&#x2F;span&gt;&lt;span&gt; p&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#88c0d0;&quot;&gt;use_count&lt;&#x2F;span&gt;&lt;span&gt;() &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;lt;&amp;lt;&lt;&#x2F;span&gt;&lt;span&gt; std&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span&gt;endl&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;    }
+&lt;&#x2F;span&gt;&lt;span&gt;    std&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span&gt;cout &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;lt;&amp;lt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;&amp;quot;Count: &amp;quot; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;lt;&amp;lt;&lt;&#x2F;span&gt;&lt;span&gt; p&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#88c0d0;&quot;&gt;use_count&lt;&#x2F;span&gt;&lt;span&gt;() &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;lt;&amp;lt;&lt;&#x2F;span&gt;&lt;span&gt; std&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span&gt;endl&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#616e88;&quot;&gt;&#x2F;&#x2F; Position 4
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;0&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Let&#x27;s briefly analyze this code, in position (1) we create the shared pointer and the reference count goes to 1. After in position (2) we copy p into p2, which means that the reference count increases and the from 1 goes to 2.
+At position (3) we perform another assignment operator which increments the reference count which goes from 2 to 3.
+Finally, at position (4) the &lt;span style=&quot;font-family:Courier New; font-size:1em;&quot;&gt;p3&lt;&#x2F;span&gt;
+goes out of scope and the counter goes back to 2. When &lt;span style=&quot;font-family:Courier New; font-size:1em;&quot;&gt;main&lt;&#x2F;span&gt; finishes its execution.&lt;&#x2F;p&gt;
+&lt;p&gt;What happens in memory is the following:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;at position (1) the control block and the object are created, so the reference count is one.
+&lt;figure&gt;
+    &lt;img src=&quot;&amp;#x2F;img&amp;#x2F;shared_ptr&amp;#x2F;shared_ptr1.jpg&quot;  alt=&quot;First call to make_shared&quot;&gt;
+    
+    &lt;figcaption&gt;&lt;&#x2F;figcaption&gt;
+    
+&lt;&#x2F;figure&gt;&lt;&#x2F;li&gt;
+&lt;li&gt;at position (2) the assignment operator is called, which acts as the copy constructor. Now p and p2 will have a pointer to have and to the control block.
+&lt;figure&gt;
+    &lt;img src=&quot;&amp;#x2F;img&amp;#x2F;shared_ptr&amp;#x2F;shared_ptr2.jpg&quot; &gt;
+    
+    &lt;figcaption&gt;&lt;&#x2F;figcaption&gt;
+    
+&lt;&#x2F;figure&gt;&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;This behavior translates in C++ with the following code.&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;cpp&quot; style=&quot;background-color:#2e3440;color:#d8dee9;&quot; class=&quot;language-cpp &quot;&gt;&lt;code class=&quot;language-cpp&quot; data-lang=&quot;cpp&quot;&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;template &lt;&#x2F;span&gt;&lt;span&gt;&amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;typename&lt;&#x2F;span&gt;&lt;span&gt; T&amp;gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;class &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fbcbb;&quot;&gt;SharedPtr
+&lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;public&lt;&#x2F;span&gt;&lt;span&gt;:
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;template &lt;&#x2F;span&gt;&lt;span&gt;&amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;typename...&lt;&#x2F;span&gt;&lt;span&gt; Args&amp;gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;explicit &lt;&#x2F;span&gt;&lt;span style=&quot;color:#88c0d0;&quot;&gt;SharedPtr&lt;&#x2F;span&gt;&lt;span&gt;(Args&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;amp;&amp;amp;... &lt;&#x2F;span&gt;&lt;span&gt;args) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;: &lt;&#x2F;span&gt;&lt;span&gt;m_ptr(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;new &lt;&#x2F;span&gt;&lt;span style=&quot;color:#88c0d0;&quot;&gt;T&lt;&#x2F;span&gt;&lt;span&gt;(std&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span style=&quot;color:#88c0d0;&quot;&gt;forward&lt;&#x2F;span&gt;&lt;span&gt;&amp;lt;Args&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;...&lt;&#x2F;span&gt;&lt;span&gt;&amp;gt;(args&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;...&lt;&#x2F;span&gt;&lt;span&gt;)))&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;, 
+&lt;&#x2F;span&gt;&lt;span&gt;                                         m_count(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;new &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fbcbb;&quot;&gt;size_t&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;1&lt;&#x2F;span&gt;&lt;span&gt;)) {}
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#616e88;&quot;&gt;&#x2F;&#x2F; Default constructor
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#88c0d0;&quot;&gt;SharedPtr&lt;&#x2F;span&gt;&lt;span&gt;() &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;= default&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;...
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;private&lt;&#x2F;span&gt;&lt;span&gt;:
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fbcbb;&quot;&gt;size_t&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;*&lt;&#x2F;span&gt;&lt;span&gt; m_count &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;= nullptr&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#616e88;&quot;&gt;&#x2F;&#x2F; (1) Control block pointer
+&lt;&#x2F;span&gt;&lt;span&gt;    T&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;*&lt;&#x2F;span&gt;&lt;span&gt; m_ptr &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;= nullptr&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#616e88;&quot;&gt;&#x2F;&#x2F; (2) Data pointer
+&lt;&#x2F;span&gt;&lt;span&gt;}&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;We have two pointers one to the object that we want to share &lt;span style=&quot;font-family:Courier New; font-size:1em;&quot;&gt;T*&lt;&#x2F;span&gt; and the other to the control block &lt;span style=&quot;font-family:Courier New; font-size:1em;&quot;&gt;m_count&lt;&#x2F;span&gt;, which simply contains the counter that can be reset and incremented.&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;assignment-and-copy&quot;&gt;Assignment and Copy&lt;&#x2F;h3&gt;
+&lt;p&gt;The copy contructor and assignment operator are quite straightforward. We need simply to copy the pointers and then increment the counter. This means that the new shared pointer will point to the same control block and to the same data of the copied instance.&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;cpp&quot; style=&quot;background-color:#2e3440;color:#d8dee9;&quot; class=&quot;language-cpp &quot;&gt;&lt;code class=&quot;language-cpp&quot; data-lang=&quot;cpp&quot;&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;template &lt;&#x2F;span&gt;&lt;span&gt;&amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;typename&lt;&#x2F;span&gt;&lt;span&gt; T&amp;gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;class &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fbcbb;&quot;&gt;SharedPtr
+&lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;public&lt;&#x2F;span&gt;&lt;span&gt;:
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;...
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#88c0d0;&quot;&gt;SharedPtr&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;const&lt;&#x2F;span&gt;&lt;span&gt; SharedPtr&amp;lt;T&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;amp; &lt;&#x2F;span&gt;&lt;span&gt;other)
+&lt;&#x2F;span&gt;&lt;span&gt;    {
+&lt;&#x2F;span&gt;&lt;span&gt;        m_ptr &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; other&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span&gt;m_ptr&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;        m_count &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; other&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span&gt;m_count&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;        (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;*&lt;&#x2F;span&gt;&lt;span&gt;m_count)&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;++&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;    }
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    SharedPtr&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;amp; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#88c0d0;&quot;&gt;operator=&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;const&lt;&#x2F;span&gt;&lt;span&gt; SharedPtr&amp;lt;T&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;amp; &lt;&#x2F;span&gt;&lt;span&gt;other)
+&lt;&#x2F;span&gt;&lt;span&gt;    {
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#616e88;&quot;&gt;&#x2F;&#x2F; Maybe using copy and swap here
+&lt;&#x2F;span&gt;&lt;span&gt;        m_ptr &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; other&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span&gt;m_ptr&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;        m_count &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; other&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span&gt;m_count&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;        (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;*&lt;&#x2F;span&gt;&lt;span&gt;m_count)&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;++&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;    }
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;...
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;private&lt;&#x2F;span&gt;&lt;span&gt;:
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fbcbb;&quot;&gt;size_t&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;*&lt;&#x2F;span&gt;&lt;span&gt; m_count &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;= nullptr&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#616e88;&quot;&gt;&#x2F;&#x2F; (1) Control block pointer
+&lt;&#x2F;span&gt;&lt;span&gt;    T&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;*&lt;&#x2F;span&gt;&lt;span&gt; m_ptr &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;= nullptr&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#616e88;&quot;&gt;&#x2F;&#x2F; (2) Data pointer
+&lt;&#x2F;span&gt;&lt;span&gt;}&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;h3 id=&quot;destructor&quot;&gt;Destructor&lt;&#x2F;h3&gt;
+&lt;p&gt;The destructor is intuitive too, when an shared pointer exits the scope what happens is that we need to reduce the counter. The last object to be deallocated will be the one that will destroy the shared resource and the control block.&lt;&#x2F;p&gt;
+&lt;p&gt;Here an example of what happens on shared pointer destruction.&lt;&#x2F;p&gt;
+&lt;figure&gt;
+    &lt;img src=&quot;&amp;#x2F;img&amp;#x2F;shared_ptr&amp;#x2F;shared_ptr_destr.jpg&quot; &gt;
+    
+    &lt;figcaption&gt;&lt;&#x2F;figcaption&gt;
+    
+&lt;&#x2F;figure&gt;
+&lt;p&gt;When p2 goes out of scope the counter is decremented and the pointers are deallocated.&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;cpp&quot; style=&quot;background-color:#2e3440;color:#d8dee9;&quot; class=&quot;language-cpp &quot;&gt;&lt;code class=&quot;language-cpp&quot; data-lang=&quot;cpp&quot;&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;template &lt;&#x2F;span&gt;&lt;span&gt;&amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;typename&lt;&#x2F;span&gt;&lt;span&gt; T&amp;gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;class &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fbcbb;&quot;&gt;SharedPtr
+&lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;public&lt;&#x2F;span&gt;&lt;span&gt;:
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;...
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#88c0d0;&quot;&gt;~SharedPtr&lt;&#x2F;span&gt;&lt;span&gt;()
+&lt;&#x2F;span&gt;&lt;span&gt;    {
+&lt;&#x2F;span&gt;&lt;span&gt;        (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;*&lt;&#x2F;span&gt;&lt;span&gt;m_count)&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;--&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;if&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;*&lt;&#x2F;span&gt;&lt;span&gt;m_count &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;== &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;0&lt;&#x2F;span&gt;&lt;span&gt;)
+&lt;&#x2F;span&gt;&lt;span&gt;        {
+&lt;&#x2F;span&gt;&lt;span&gt;            &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;delete &lt;&#x2F;span&gt;&lt;span&gt;m_count&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;            &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;delete &lt;&#x2F;span&gt;&lt;span&gt;m_ptr&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;        }
+&lt;&#x2F;span&gt;&lt;span&gt;    }
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;...
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;private&lt;&#x2F;span&gt;&lt;span&gt;:
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fbcbb;&quot;&gt;size_t&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;*&lt;&#x2F;span&gt;&lt;span&gt; m_count &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;= nullptr&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;    T&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;*&lt;&#x2F;span&gt;&lt;span&gt; m_ptr &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;= nullptr&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;}&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;h3 id=&quot;full-implementation-in-c&quot;&gt;Full implementation in C++&lt;&#x2F;h3&gt;
+&lt;p&gt;Here you can find the full implementation in C++.&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;cpp&quot; style=&quot;background-color:#2e3440;color:#d8dee9;&quot; class=&quot;language-cpp &quot;&gt;&lt;code class=&quot;language-cpp&quot; data-lang=&quot;cpp&quot;&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;template &lt;&#x2F;span&gt;&lt;span&gt;&amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;typename&lt;&#x2F;span&gt;&lt;span&gt; T&amp;gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;class &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fbcbb;&quot;&gt;SharedPtr
+&lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;public&lt;&#x2F;span&gt;&lt;span&gt;:
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;template &lt;&#x2F;span&gt;&lt;span&gt;&amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;typename...&lt;&#x2F;span&gt;&lt;span&gt; Args&amp;gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;explicit &lt;&#x2F;span&gt;&lt;span style=&quot;color:#88c0d0;&quot;&gt;SharedPtr&lt;&#x2F;span&gt;&lt;span&gt;(Args&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;amp;&amp;amp;... &lt;&#x2F;span&gt;&lt;span&gt;args) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;: &lt;&#x2F;span&gt;&lt;span&gt;m_ptr(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;new &lt;&#x2F;span&gt;&lt;span style=&quot;color:#88c0d0;&quot;&gt;T&lt;&#x2F;span&gt;&lt;span&gt;(std&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span style=&quot;color:#88c0d0;&quot;&gt;forward&lt;&#x2F;span&gt;&lt;span&gt;&amp;lt;Args&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;...&lt;&#x2F;span&gt;&lt;span&gt;&amp;gt;(args&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;...&lt;&#x2F;span&gt;&lt;span&gt;)))&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;, 
+&lt;&#x2F;span&gt;&lt;span&gt;                                         m_count(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;new &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fbcbb;&quot;&gt;size_t&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;1&lt;&#x2F;span&gt;&lt;span&gt;)) {}
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#616e88;&quot;&gt;&#x2F;&#x2F; Default constructor
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#88c0d0;&quot;&gt;SharedPtr&lt;&#x2F;span&gt;&lt;span&gt;() &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;= default&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#88c0d0;&quot;&gt;SharedPtr&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;const&lt;&#x2F;span&gt;&lt;span&gt; SharedPtr&amp;lt;T&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;amp; &lt;&#x2F;span&gt;&lt;span&gt;other)
+&lt;&#x2F;span&gt;&lt;span&gt;    {
+&lt;&#x2F;span&gt;&lt;span&gt;        m_ptr &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; other&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span&gt;m_ptr&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;        m_count &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; other&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span&gt;m_count&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;        (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;*&lt;&#x2F;span&gt;&lt;span&gt;m_count)&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;++&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;    }
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    SharedPtr&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;amp; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#88c0d0;&quot;&gt;operator=&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;const&lt;&#x2F;span&gt;&lt;span&gt; SharedPtr&amp;lt;T&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;amp; &lt;&#x2F;span&gt;&lt;span&gt;other)
+&lt;&#x2F;span&gt;&lt;span&gt;    {
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#616e88;&quot;&gt;&#x2F;&#x2F; Maybe using copy and swap here
+&lt;&#x2F;span&gt;&lt;span&gt;        m_ptr &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; other&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span&gt;m_ptr&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;        m_count &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; other&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span&gt;m_count&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;        (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;*&lt;&#x2F;span&gt;&lt;span&gt;m_count)&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;++&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;    }
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fbcbb;&quot;&gt;size_t &lt;&#x2F;span&gt;&lt;span style=&quot;color:#88c0d0;&quot;&gt;use_count&lt;&#x2F;span&gt;&lt;span&gt;() &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;const
+&lt;&#x2F;span&gt;&lt;span&gt;    {
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span&gt;m_count &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;!= nullptr ? *&lt;&#x2F;span&gt;&lt;span&gt;m_count &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;0&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;    }
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    T&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;* &lt;&#x2F;span&gt;&lt;span style=&quot;color:#88c0d0;&quot;&gt;get&lt;&#x2F;span&gt;&lt;span&gt;() &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;const
+&lt;&#x2F;span&gt;&lt;span&gt;    {
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;return *&lt;&#x2F;span&gt;&lt;span&gt;m_ptr&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;    }
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    T&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;amp; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#88c0d0;&quot;&gt;operator*&lt;&#x2F;span&gt;&lt;span&gt;()
+&lt;&#x2F;span&gt;&lt;span&gt;    {
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;return *&lt;&#x2F;span&gt;&lt;span&gt;m_ptr&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;    }
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    T&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;* &lt;&#x2F;span&gt;&lt;span style=&quot;color:#88c0d0;&quot;&gt;operator-&amp;gt;&lt;&#x2F;span&gt;&lt;span&gt;()
+&lt;&#x2F;span&gt;&lt;span&gt;    {
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span&gt;m_ptr&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;    }
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#88c0d0;&quot;&gt;~SharedPtr&lt;&#x2F;span&gt;&lt;span&gt;()
+&lt;&#x2F;span&gt;&lt;span&gt;    {
+&lt;&#x2F;span&gt;&lt;span&gt;        (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;*&lt;&#x2F;span&gt;&lt;span&gt;m_count)&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;--&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;if&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;*&lt;&#x2F;span&gt;&lt;span&gt;m_count &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;== &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;0&lt;&#x2F;span&gt;&lt;span&gt;)
+&lt;&#x2F;span&gt;&lt;span&gt;        {
+&lt;&#x2F;span&gt;&lt;span&gt;            &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;delete &lt;&#x2F;span&gt;&lt;span&gt;m_count&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;            &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;delete &lt;&#x2F;span&gt;&lt;span&gt;m_ptr&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;        }
+&lt;&#x2F;span&gt;&lt;span&gt;    }
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;friend&lt;&#x2F;span&gt;&lt;span&gt; std&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span&gt;ostream&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;amp; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#88c0d0;&quot;&gt;operator&amp;lt;&amp;lt;&lt;&#x2F;span&gt;&lt;span&gt;(std&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span&gt;ostream&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;amp; &lt;&#x2F;span&gt;&lt;span&gt;os&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;const&lt;&#x2F;span&gt;&lt;span&gt; SharedPtr&amp;lt;T&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;amp; &lt;&#x2F;span&gt;&lt;span&gt;ptr)
+&lt;&#x2F;span&gt;&lt;span&gt;    {
+&lt;&#x2F;span&gt;&lt;span&gt;        os &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;lt;&amp;lt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;&amp;quot;Address pointed is &amp;quot; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;lt;&amp;lt;&lt;&#x2F;span&gt;&lt;span&gt; ptr&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span&gt;m_ptr &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;lt;&amp;lt;&lt;&#x2F;span&gt;&lt;span&gt; std&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span&gt;endl&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;        os &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;lt;&amp;lt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;&amp;quot;Value of the counter: &amp;quot; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;lt;&amp;lt; *&lt;&#x2F;span&gt;&lt;span&gt;ptr&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span&gt;m_count &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;lt;&amp;lt;&lt;&#x2F;span&gt;&lt;span&gt; std&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span&gt;endl&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;return&lt;&#x2F;span&gt;&lt;span&gt; os&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;    }
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;private&lt;&#x2F;span&gt;&lt;span&gt;:
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fbcbb;&quot;&gt;size_t&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;*&lt;&#x2F;span&gt;&lt;span&gt; m_count &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;= nullptr&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;    T&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;*&lt;&#x2F;span&gt;&lt;span&gt; m_ptr &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;= nullptr&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;}&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;h2 id=&quot;rust&quot;&gt;Rust&lt;&#x2F;h2&gt;
+&lt;p&gt;In Rust we have the standard smart pointer Rc that works similar compared to &lt;span style=&quot;font-family:Courier New; font-size:1em;&quot;&gt;std::shared_ptr&lt;&#x2F;span&gt;.&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; style=&quot;background-color:#2e3440;color:#d8dee9;&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;use &lt;&#x2F;span&gt;&lt;span&gt;std&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span&gt;rc&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span&gt;Rc&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;struct &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8fbcbb;&quot;&gt;A
+&lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;    element1 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;i32&lt;&#x2F;span&gt;&lt;span&gt;,
+&lt;&#x2F;span&gt;&lt;span&gt;    element2 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;i32&lt;&#x2F;span&gt;&lt;span&gt;,
+&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;pub fn &lt;&#x2F;span&gt;&lt;span style=&quot;color:#88c0d0;&quot;&gt;main&lt;&#x2F;span&gt;&lt;span&gt;()
+&lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span&gt; a &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; A{element1&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;:&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;10&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;,&lt;&#x2F;span&gt;&lt;span&gt; element2&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;:&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b48ead;&quot;&gt;10&lt;&#x2F;span&gt;&lt;span&gt;}&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span&gt; b &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span&gt;Rc&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span&gt;new(a)&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#616e88;&quot;&gt;&#x2F;&#x2F; count = 1
+&lt;&#x2F;span&gt;&lt;span&gt;    println!(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;&amp;quot;b count &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;{}&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;, &lt;&#x2F;span&gt;&lt;span&gt;Rc&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span&gt;strong_count(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;amp;&lt;&#x2F;span&gt;&lt;span&gt;b))&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span&gt; c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span&gt;Rc&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span&gt;clone(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;amp;&lt;&#x2F;span&gt;&lt;span&gt;b)&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#616e88;&quot;&gt;&#x2F;&#x2F; count = 2
+&lt;&#x2F;span&gt;&lt;span&gt;    println!(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;&amp;quot;b count &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;{}&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;, &lt;&#x2F;span&gt;&lt;span&gt;Rc&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span&gt;strong_count(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;amp;&lt;&#x2F;span&gt;&lt;span&gt;b))&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    {
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span&gt; d &lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span&gt;Rc&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span&gt;clone(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;amp;&lt;&#x2F;span&gt;&lt;span&gt;b)&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#616e88;&quot;&gt;&#x2F;&#x2F; count = 3
+&lt;&#x2F;span&gt;&lt;span&gt;        println!(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;&amp;quot;b count &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;{}&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;, &lt;&#x2F;span&gt;&lt;span&gt;Rc&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span&gt;strong_count(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;amp;&lt;&#x2F;span&gt;&lt;span&gt;b))&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;    }
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    println!(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;&amp;quot;b count &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ebcb8b;&quot;&gt;{}&lt;&#x2F;span&gt;&lt;span style=&quot;color:#a3be8c;&quot;&gt;&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;, &lt;&#x2F;span&gt;&lt;span&gt;Rc&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span&gt;strong_count(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#81a1c1;&quot;&gt;&amp;amp;&lt;&#x2F;span&gt;&lt;span&gt;b))&lt;&#x2F;span&gt;&lt;span style=&quot;color:#eceff4;&quot;&gt;; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#616e88;&quot;&gt;&#x2F;&#x2F; count = 2
+&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;h2 id=&quot;links&quot;&gt;Links&lt;&#x2F;h2&gt;
+&lt;p&gt;&lt;a rel=&quot;nofollow noreferrer&quot; href=&quot;https:&#x2F;&#x2F;learn.microsoft.com&#x2F;en-us&#x2F;cpp&#x2F;cpp&#x2F;how-to-create-and-use-shared-ptr-instances?view=msvc-170&quot;&gt;How to use shared_ptr&lt;&#x2F;a&gt;
+&lt;br&gt;
+&lt;a rel=&quot;nofollow noreferrer&quot; href=&quot;https:&#x2F;&#x2F;www.godbolt.org&#x2F;z&#x2F;ETPbT6q5n&quot;&gt;Full Implementation in C++ (Godbolt)&lt;&#x2F;a&gt;
+&lt;br&gt;
+&lt;a rel=&quot;nofollow noreferrer&quot; href=&quot;https:&#x2F;&#x2F;www.godbolt.org&#x2F;z&#x2F;Gf9hh543d&quot;&gt;Rust Example (Godbolt)&lt;&#x2F;a&gt;&lt;&#x2F;p&gt;
+</content>
+	</entry>
 	<entry xml:lang="en">
 		<title>Letter Combinations of a Phone Number</title>
 		<published>2022-09-09T00:00:00+00:00</published>

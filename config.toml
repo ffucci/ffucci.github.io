@@ -39,7 +39,7 @@ bio = "Computer geek and software enthusiast"                     # Your bio
 avatar = "img/PhotoBlog.jpg"       # Your avatar
 
 show_id = true                   # Whether to show your id in homepage
-show_projects = false             # Whether to show projects page
+show_projects = true             # Whether to show projects page
 
 #============== Icons, you can choose at https://remixicon.com/ ====
 blog_icon = "ri-quill-pen-line"          
@@ -50,9 +50,10 @@ toc_icon = "ri-menu-2-line"
 
 #============== Social media links =================================
 links = [
-    {name = "GitHub", icon = "ri-github-line", url = "https://github.com/<your-username>"},
-    {name = "Twitter", icon = "ri-twitter-line", url = "https://twitter.com/<your-username>"},
-    {name = "Email", icon = "ri-mail-line", url = "mailto:<your-email-address>"}
+    {name = "LinkedIn", icon = "ri-linkedin-line", url = "https://linkedin.com/in/frfucci"},
+    {name = "GitHub", icon = "ri-github-line", url = "https://github.com/ffucci"},
+    {name = "Twitter", icon = "ri-twitter-line", url = "https://twitter.com/fr_fucci"},
+    {name = "Email", icon = "ri-mail-line", url = "mailto:francesco.fucci.jobs@gmail.com"}
     # Your can add more links
 ]
 

@@ -1,14 +1,14 @@
 [[project]]
-name = ""
-desc = ""
+name = "Montecarlo Options"
+desc = "A small C++20 framework to perform Montecarlo pricing"
 links = [
 	{name = "", url = ""},
 	{name = "", url = ""}
 ]
 
 [[project]]
-name = ""
-desc = ""
+name = "UModules"
+desc = "A sequencer in VCV Rack written in C++"
 links = [
 	{name = "", url = ""},
 	{name = "", url = ""}

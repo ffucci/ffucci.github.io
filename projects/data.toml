@@ -1,9 +1,15 @@
 [[project]]
+name = "Matching Engine"
+desc = "A matching engine implementation in Rust"
+links = [
+	{name = "GitHub", url = "https://github.com/ffucci/matching_engine_rs"}
+]
+
+[[project]]
 name = "Montecarlo Options"
 desc = "A small C++20 framework to perform Montecarlo pricing"
 links = [
-	{name = "", url = ""},
-	{name = "", url = ""}
+	{name = "GitHub", url = "https://github.com/ffucci/montecarlo_options"},
 ]
 
 [[project]]
@@ -11,5 +17,4 @@ name = "UModules"
 desc = "A sequencer in VCV Rack written in C++"
 links = [
 	{name = "", url = ""},
-	{name = "", url = ""}
 ]
